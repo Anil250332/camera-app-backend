@@ -51,7 +51,7 @@ class SessionRepository {
       return await db.getModels().Session.findOneAndUpdate(
         { id: sessionId },
         { $set: { status, updatedAt } },
-        { new: true }
+        { returnDocument: 'after' }
       ).lean();
     }
 

@@ -50,7 +50,7 @@ class DeviceRepository {
       const updated = await db.getModels().Device.findOneAndUpdate(
         { id: newDevice.id },
         { $set: newDevice },
-        { upsert: true, new: true }
+        { upsert: true, returnDocument: 'after' }
       ).lean();
       return updated;
     }
@@ -72,7 +72,7 @@ class DeviceRepository {
       return await db.getModels().Device.findOneAndUpdate(
         { id: deviceId },
         { $set: { status, lastSeen } },
-        { new: true }
+        { returnDocument: 'after' }
       ).lean();
     }
 
