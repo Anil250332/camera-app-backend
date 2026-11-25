@@ -180,6 +180,18 @@ function initSignalingSocket(io) {
       }
     });
 
+    // Switch Front/Back camera on Camera Device
+    socket.on('switch-camera', (data) => {
+      if (!socket.user) return;
+      const { targetDeviceId } = data;
+      const targetSocketId = deviceSocketMap.get(targetDeviceId);
+      if (targetSocketId) {
+        io.to(targetSocketId).emit('switch-camera', {
+          senderDeviceId: socketDeviceMap.get(socket.id)
+        });
+      }
+    });
+
     // Explicit stream termination by either party
     socket.on('end-stream', async (data) => {
       try {
