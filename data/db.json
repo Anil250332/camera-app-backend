@@ -1,0 +1,315 @@
+{
+  "users": [
+    {
+      "id": "usr_1795628614649_yjcg0",
+      "username": "testuser_1795628614509",
+      "email": "test@example.com",
+      "passwordHash": "$2a$10$FcDx1T2O3HwpqqtfU/YdfONeRPDASloHu9N8bXRfVVRsV5Vhug6dS",
+      "createdAt": "2026-11-25T17:43:34.649Z"
+    },
+    {
+      "id": "usr_1795628640128_u8488",
+      "username": "testuser_1795628639992",
+      "email": "test@example.com",
+      "passwordHash": "$2a$10$/EX7ovEfBPTH9tGOpgF62u/KK99qERarXiyAzMvcstGoKfnD8G9Da",
+      "createdAt": "2026-11-25T17:44:00.128Z"
+    },
+    {
+      "id": "usr_1795629095110_65m9p",
+      "username": "testuser_1795629094983",
+      "email": "test@example.com",
+      "passwordHash": "$2a$10$4APJskeRgpzr57V5PoTjXuauyUUHgxssz6u8WqnbSfJQfX5O41A4e",
+      "createdAt": "2026-11-25T17:51:35.110Z"
+    },
+    {
+      "id": "usr_1795630318939_hsyfn",
+      "username": "testuser_1795630318736",
+      "email": "test@example.com",
+      "passwordHash": "$2a$10$VzHDu2A60XV3JIiqTTIs2ezBAAFBGmZY7i42ajpaj5lfMeDYbZmce",
+      "createdAt": "2026-11-25T18:11:58.939Z"
+    },
+    {
+      "id": "usr_1795630378846_um8e2",
+      "username": "testuser_1795630378714",
+      "email": "test@example.com",
+      "passwordHash": "$2a$10$bkz75cZK4i5I6VrXSJuKQ.LXLoBHL1eN.Ly2nGpy7Vt73mHke1o7q",
+      "createdAt": "2026-11-25T18:12:58.846Z"
+    }
+  ],
+  "devices": [
+    {
+      "id": "dev_1795628614670_n6v7c",
+      "name": "Pixel 8 Pro (Camera)",
+      "type": "camera",
+      "userId": "usr_1795628614649_yjcg0",
+      "pairingCode": "X1QEEU",
+      "status": "online",
+      "lastSeen": "2026-11-25T17:43:34.705Z",
+      "createdAt": "2026-11-25T17:43:34.670Z"
+    },
+    {
+      "id": "dev_1795628614677_4bgji",
+      "name": "Galaxy Tab S9 (Viewer)",
+      "type": "viewer",
+      "userId": "usr_1795628614649_yjcg0",
+      "pairingCode": "7AXX3S",
+      "status": "offline",
+      "lastSeen": "2026-11-25T17:43:34.677Z",
+      "createdAt": "2026-11-25T17:43:34.677Z"
+    },
+    {
+      "id": "dev_1795628640150_j5y5q",
+      "name": "Pixel 8 Pro (Camera)",
+      "type": "camera",
+      "userId": "usr_1795628640128_u8488",
+      "pairingCode": "0X0ZY2",
+      "status": "online",
+      "lastSeen": "2026-11-25T17:44:00.191Z",
+      "createdAt": "2026-11-25T17:44:00.150Z"
+    },
+    {
+      "id": "dev_1795628640155_9h6qa",
+      "name": "Galaxy Tab S9 (Viewer)",
+      "type": "viewer",
+      "userId": "usr_1795628640128_u8488",
+      "pairingCode": "4HGQAD",
+      "status": "offline",
+      "lastSeen": "2026-11-25T17:44:00.155Z",
+      "createdAt": "2026-11-25T17:44:00.155Z"
+    },
+    {
+      "id": "dev_1795629095131_uq9b6",
+      "name": "Pixel 8 Pro (Camera)",
+      "type": "camera",
+      "userId": "usr_1795629095110_65m9p",
+      "pairingCode": "U21B9S",
+      "status": "online",
+      "lastSeen": "2026-11-25T17:51:35.174Z",
+      "createdAt": "2026-11-25T17:51:35.131Z"
+    },
+    {
+      "id": "dev_1795629095138_sbe98",
+      "name": "Galaxy Tab S9 (Viewer)",
+      "type": "viewer",
+      "userId": "usr_1795629095110_65m9p",
+      "pairingCode": "T9DFPE",
+      "status": "offline",
+      "lastSeen": "2026-11-25T17:51:35.138Z",
+      "createdAt": "2026-11-25T17:51:35.138Z"
+    },
+    {
+      "id": "dev_1795630318984_xa0kz",
+      "name": "Pixel 8 Pro (Camera)",
+      "type": "camera",
+      "userId": "usr_1795630318939_hsyfn",
+      "pairingCode": "EV4BLH",
+      "status": "online",
+      "lastSeen": "2026-11-25T18:11:59.019Z",
+      "createdAt": "2026-11-25T18:11:58.984Z"
+    },
+    {
+      "id": "dev_1795630318990_oa739",
+      "name": "Galaxy Tab S9 (Viewer)",
+      "type": "viewer",
+      "userId": "usr_1795630318939_hsyfn",
+      "pairingCode": "THDWVH",
+      "status": "offline",
+      "lastSeen": "2026-11-25T18:11:58.990Z",
+      "createdAt": "2026-11-25T18:11:58.990Z"
+    },
+    {
+      "id": "dev_1795630378865_vr4gt",
+      "name": "Pixel 8 Pro (Camera)",
+      "type": "camera",
+      "userId": "usr_1795630378846_um8e2",
+      "pairingCode": "J9XGH3",
+      "status": "online",
+      "lastSeen": "2026-11-25T18:12:58.902Z",
+      "createdAt": "2026-11-25T18:12:58.865Z"
+    },
+    {
+      "id": "dev_1795630378873_rvw1j",
+      "name": "Galaxy Tab S9 (Viewer)",
+      "type": "viewer",
+      "userId": "usr_1795630378846_um8e2",
+      "pairingCode": "KFZRLG",
+      "status": "offline",
+      "lastSeen": "2026-11-25T18:12:58.873Z",
+      "createdAt": "2026-11-25T18:12:58.873Z"
+    },
+    {
+      "id": "dev_1795630952738_veqdg",
+      "name": "Pixel 8 Pro (Camera)",
+      "type": "camera",
+      "userId": "anonymous",
+      "pairingCode": "T18AK5",
+      "status": "online",
+      "lastSeen": "2026-11-25T18:22:32.796Z",
+      "createdAt": "2026-11-25T18:22:32.739Z"
+    },
+    {
+      "id": "dev_1795630952757_0hp1h",
+      "name": "Web Dashboard (Viewer)",
+      "type": "viewer",
+      "userId": "anonymous",
+      "pairingCode": "V14RRA",
+      "status": "offline",
+      "lastSeen": "2026-11-25T18:22:32.757Z",
+      "createdAt": "2026-11-25T18:22:32.757Z"
+    }
+  ],
+  "pairings": [
+    {
+      "id": "pair_1795628614683_bprr7",
+      "userId": "usr_1795628614649_yjcg0",
+      "viewerDeviceId": "dev_1795628614677_4bgji",
+      "cameraDeviceId": "dev_1795628614670_n6v7c",
+      "pairedAt": "2026-11-25T17:43:34.683Z"
+    },
+    {
+      "id": "pair_1795628640164_ovk5g",
+      "userId": "usr_1795628640128_u8488",
+      "viewerDeviceId": "dev_1795628640155_9h6qa",
+      "cameraDeviceId": "dev_1795628640150_j5y5q",
+      "pairedAt": "2026-11-25T17:44:00.164Z"
+    },
+    {
+      "id": "pair_1795629095146_yhdfx",
+      "userId": "usr_1795629095110_65m9p",
+      "viewerDeviceId": "dev_1795629095138_sbe98",
+      "cameraDeviceId": "dev_1795629095131_uq9b6",
+      "pairedAt": "2026-11-25T17:51:35.146Z"
+    },
+    {
+      "id": "pair_1795630318996_tepya",
+      "userId": "usr_1795630318939_hsyfn",
+      "viewerDeviceId": "dev_1795630318990_oa739",
+      "cameraDeviceId": "dev_1795630318984_xa0kz",
+      "pairedAt": "2026-11-25T18:11:58.996Z"
+    },
+    {
+      "id": "pair_1795630378878_lhkxx",
+      "userId": "usr_1795630378846_um8e2",
+      "viewerDeviceId": "dev_1795630378873_rvw1j",
+      "cameraDeviceId": "dev_1795630378865_vr4gt",
+      "pairedAt": "2026-11-25T18:12:58.878Z"
+    },
+    {
+      "id": "pair_1795630952769_kutly",
+      "userId": "anonymous",
+      "viewerDeviceId": "dev_1795630952757_0hp1h",
+      "cameraDeviceId": "dev_1795630952738_veqdg",
+      "pairedAt": "2026-11-25T18:22:32.769Z"
+    }
+  ],
+  "sessions": [
+    {
+      "id": "sess_1795628614694_mw4yt",
+      "cameraDeviceId": "dev_1795628614670_n6v7c",
+      "viewerDeviceId": "dev_1795628614677_4bgji",
+      "userId": "usr_1795628614649_yjcg0",
+      "status": "terminated",
+      "createdAt": "2026-11-25T17:43:34.694Z",
+      "updatedAt": "2026-11-25T17:43:34.705Z"
+    },
+    {
+      "id": "sess_1795628614711_mmgi6",
+      "cameraDeviceId": "dev_1795628614670_n6v7c",
+      "viewerDeviceId": "dev_1795628614677_4bgji",
+      "userId": "usr_1795628614649_yjcg0",
+      "status": "pending",
+      "createdAt": "2026-11-25T17:43:34.711Z",
+      "updatedAt": "2026-11-25T17:43:34.711Z"
+    },
+    {
+      "id": "sess_1795628640179_5ptqr",
+      "cameraDeviceId": "dev_1795628640150_j5y5q",
+      "viewerDeviceId": "dev_1795628640155_9h6qa",
+      "userId": "usr_1795628640128_u8488",
+      "status": "terminated",
+      "createdAt": "2026-11-25T17:44:00.179Z",
+      "updatedAt": "2026-11-25T17:44:00.190Z"
+    },
+    {
+      "id": "sess_1795628640197_71q87",
+      "cameraDeviceId": "dev_1795628640150_j5y5q",
+      "viewerDeviceId": "dev_1795628640155_9h6qa",
+      "userId": "usr_1795628640128_u8488",
+      "status": "pending",
+      "createdAt": "2026-11-25T17:44:00.197Z",
+      "updatedAt": "2026-11-25T17:44:00.197Z"
+    },
+    {
+      "id": "sess_1795629095161_bjec3",
+      "cameraDeviceId": "dev_1795629095131_uq9b6",
+      "viewerDeviceId": "dev_1795629095138_sbe98",
+      "userId": "usr_1795629095110_65m9p",
+      "status": "terminated",
+      "createdAt": "2026-11-25T17:51:35.161Z",
+      "updatedAt": "2026-11-25T17:51:35.173Z"
+    },
+    {
+      "id": "sess_1795629095181_me1ag",
+      "cameraDeviceId": "dev_1795629095131_uq9b6",
+      "viewerDeviceId": "dev_1795629095138_sbe98",
+      "userId": "usr_1795629095110_65m9p",
+      "status": "pending",
+      "createdAt": "2026-11-25T17:51:35.181Z",
+      "updatedAt": "2026-11-25T17:51:35.181Z"
+    },
+    {
+      "id": "sess_1795630319008_bqbar",
+      "cameraDeviceId": "dev_1795630318984_xa0kz",
+      "viewerDeviceId": "dev_1795630318990_oa739",
+      "userId": "usr_1795630318939_hsyfn",
+      "status": "terminated",
+      "createdAt": "2026-11-25T18:11:59.008Z",
+      "updatedAt": "2026-11-25T18:11:59.018Z"
+    },
+    {
+      "id": "sess_1795630319027_buy7g",
+      "cameraDeviceId": "dev_1795630318984_xa0kz",
+      "viewerDeviceId": "dev_1795630318990_oa739",
+      "userId": "usr_1795630318939_hsyfn",
+      "status": "pending",
+      "createdAt": "2026-11-25T18:11:59.027Z",
+      "updatedAt": "2026-11-25T18:11:59.027Z"
+    },
+    {
+      "id": "sess_1795630378890_8kcxz",
+      "cameraDeviceId": "dev_1795630378865_vr4gt",
+      "viewerDeviceId": "dev_1795630378873_rvw1j",
+      "userId": "usr_1795630378846_um8e2",
+      "status": "terminated",
+      "createdAt": "2026-11-25T18:12:58.890Z",
+      "updatedAt": "2026-11-25T18:12:58.902Z"
+    },
+    {
+      "id": "sess_1795630378907_td899",
+      "cameraDeviceId": "dev_1795630378865_vr4gt",
+      "viewerDeviceId": "dev_1795630378873_rvw1j",
+      "userId": "usr_1795630378846_um8e2",
+      "status": "pending",
+      "createdAt": "2026-11-25T18:12:58.907Z",
+      "updatedAt": "2026-11-25T18:12:58.907Z"
+    },
+    {
+      "id": "sess_1795630952786_e3dpv",
+      "cameraDeviceId": "dev_1795630952738_veqdg",
+      "viewerDeviceId": "dev_1795630952757_0hp1h",
+      "userId": "anonymous",
+      "status": "terminated",
+      "createdAt": "2026-11-25T18:22:32.786Z",
+      "updatedAt": "2026-11-25T18:22:32.796Z"
+    },
+    {
+      "id": "sess_1795630952801_rmwxc",
+      "cameraDeviceId": "dev_1795630952738_veqdg",
+      "viewerDeviceId": "dev_1795630952757_0hp1h",
+      "userId": "anonymous",
+      "status": "pending",
+      "createdAt": "2026-11-25T18:22:32.801Z",
+      "updatedAt": "2026-11-25T18:22:32.801Z"
+    }
+  ]
+}
