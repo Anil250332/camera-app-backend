@@ -90,6 +90,19 @@ class DeviceController {
       return res.status(500).json({ success: false, message: err.message });
     }
   }
+
+  async deleteDevice(req, res) {
+    try {
+      const { id } = req.params;
+      await deviceService.deleteDevice(id);
+      return res.status(200).json({
+        success: true,
+        message: 'Device deleted successfully'
+      });
+    } catch (err) {
+      return res.status(404).json({ success: false, message: err.message });
+    }
+  }
 }
 
 module.exports = new DeviceController();

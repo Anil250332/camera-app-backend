@@ -46,10 +46,9 @@ function initSignalingSocket(io) {
             type: deviceType || 'camera',
             pairingCode: pairingCode || undefined
           });
-          console.log(`[Socket] Auto-registered new device: ${deviceId} (${deviceType})`);
-        } else {
-          // Update status and optionally refresh pairingCode if provided
           await deviceService.updateDeviceStatus(deviceId, 'online');
+          console.log(`[Socket] Auto-registered new device as online: ${deviceId} (${deviceType})`);
+        } else {
           if (pairingCode && existing.pairingCode !== pairingCode) {
             await deviceService.registerDevice('socket-auto', {
               deviceId,
@@ -58,6 +57,10 @@ function initSignalingSocket(io) {
               pairingCode
             });
           }
+          await deviceService.updateDeviceStatus(deviceId, 'online');
+        }
+        if (deviceType === 'camera') {
+          io.emit('devices-updated');
         }
         console.log(`[Socket] Device socket mapped: ${deviceId} (${deviceType || 'unknown'}) -> ${socket.id}`);
 
@@ -226,6 +229,7 @@ function initSignalingSocket(io) {
 
         try {
           await deviceService.updateDeviceStatus(deviceId, 'offline');
+          io.emit('devices-updated');
           // Terminate active session if any
           const session = await sessionService.getAllSessions().then(sessions => 
             sessions.find(s => (s.cameraDeviceId === deviceId || s.viewerDeviceId === deviceId) && s.status === 'active')

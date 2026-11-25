@@ -150,4 +150,14 @@ describe('Remote Camera & Audio Streaming Backend Integration Tests', () => {
     assert.strictEqual(termRes.status, 200);
     assert.strictEqual(termRes.data.data.status, 'terminated');
   });
+
+  test('DELETE /api/devices/:id deletes a registered device when authenticated', async () => {
+    const res = await fetch(`${baseUrl}/api/devices/${cameraDeviceId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${authToken}` }
+    });
+    const data = await res.json();
+    assert.strictEqual(res.status, 200);
+    assert.strictEqual(data.success, true);
+  });
 });

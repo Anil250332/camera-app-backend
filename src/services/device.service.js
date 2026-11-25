@@ -91,6 +91,17 @@ class DeviceService {
   async getAllCameraDevices() {
     return await deviceRepository.findAllCameraDevices();
   }
+
+  async deleteDevice(deviceId) {
+    if (!deviceId) {
+      throw new Error('Device ID is required');
+    }
+    const deleted = await deviceRepository.deleteById(deviceId);
+    if (!deleted) {
+      throw new Error('Device not found');
+    }
+    return true;
+  }
 }
 
 module.exports = new DeviceService();

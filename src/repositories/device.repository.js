@@ -132,6 +132,20 @@ class DeviceRepository {
     const pairings = db.getCollection('pairings');
     return pairings.filter(p => p.userId === userId);
   }
+
+  async deleteById(deviceId) {
+    if (db.isMongo) {
+      const res = await db.getModels().Device.deleteOne({ id: deviceId });
+      await db.getModels().Pairing.deleteMany({ cameraDeviceId: deviceId });
+      return res.deletedCount > 0;
+    }
+    const devices = db.getCollection('devices');
+    const idx = devices.findIndex(d => d.id === deviceId);
+    if (idx === -1) return false;
+    devices.splice(idx, 1);
+    db.persist();
+    return true;
+  }
 }
 
 module.exports = new DeviceRepository();
