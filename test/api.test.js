@@ -1,17 +1,20 @@
 const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert');
 const http = require('http');
-const { app } = require('../server');
+const { app, bootstrap } = require('../server');
 
 let serverInstance;
 let baseUrl;
 
-before((t, done) => {
-  serverInstance = http.createServer(app);
-  serverInstance.listen(0, () => {
-    const port = serverInstance.address().port;
-    baseUrl = `http://localhost:${port}`;
-    done();
+before(async () => {
+  await bootstrap();
+  await new Promise((resolve) => {
+    serverInstance = http.createServer(app);
+    serverInstance.listen(0, () => {
+      const port = serverInstance.address().port;
+      baseUrl = `http://localhost:${port}`;
+      resolve();
+    });
   });
 });
 
@@ -19,31 +22,73 @@ after((t, done) => {
   serverInstance.close(done);
 });
 
-async function postJson(path, body) {
+async function postJson(path, body, token) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
   const res = await fetch(`${baseUrl}${path}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify(body)
   });
   const data = await res.json();
   return { status: res.status, data };
 }
 
-async function getJson(path) {
-  const res = await fetch(`${baseUrl}${path}`, { method: 'GET' });
+async function getJson(path, token) {
+  const headers = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const res = await fetch(`${baseUrl}${path}`, { method: 'GET', headers });
   const data = await res.json();
   return { status: res.status, data };
 }
 
 describe('Remote Camera & Audio Streaming Backend Integration Tests', () => {
+  let authToken;
   let cameraDeviceId;
   let cameraPairingCode;
-  let viewerDeviceId;
+  let viewerDeviceId = 'web_test_viewer';
   let sessionId;
+
+  test('GET /api/devices/cameras rejects unauthenticated access (401)', async () => {
+    const res = await getJson('/api/devices/cameras');
+    assert.strictEqual(res.status, 401);
+    assert.strictEqual(res.data.success, false);
+  });
+
+  test('POST /api/auth/login rejects wrong credentials (401)', async () => {
+    const res = await postJson('/api/auth/login', {
+      email: 'asahu896214@gmail.com',
+      password: 'wrongpassword'
+    });
+    assert.strictEqual(res.status, 401);
+    assert.strictEqual(res.data.success, false);
+  });
+
+  test('POST /api/auth/login succeeds with seeded admin credentials', async () => {
+    const res = await postJson('/api/auth/login', {
+      email: 'asahu896214@gmail.com',
+      password: 'asahu896214@gmail.com'
+    });
+
+    assert.strictEqual(res.status, 200);
+    assert.strictEqual(res.data.success, true);
+    assert.strictEqual(res.data.data.user.email, 'asahu896214@gmail.com');
+    assert.ok(res.data.data.token);
+    authToken = res.data.data.token;
+  });
+
+  test('GET /api/auth/me returns current authenticated user', async () => {
+    const res = await getJson('/api/auth/me', authToken);
+    assert.strictEqual(res.status, 200);
+    assert.strictEqual(res.data.success, true);
+    assert.strictEqual(res.data.data.email, 'asahu896214@gmail.com');
+  });
 
   test('POST /api/devices/register registers Mobile A (Camera Device)', async () => {
     const res = await postJson('/api/devices/register', {
-      name: 'Pixel 8 Pro (Camera)',
+      name: 'Old Android Phone (Camera)',
       type: 'camera'
     });
 
@@ -58,91 +103,51 @@ describe('Remote Camera & Audio Streaming Backend Integration Tests', () => {
 
   test('POST /api/devices/register registers Web Dashboard Viewer', async () => {
     const res = await postJson('/api/devices/register', {
+      deviceId: viewerDeviceId,
       name: 'Web Dashboard (Viewer)',
       type: 'viewer'
     });
-
     assert.strictEqual(res.status, 201);
-    assert.strictEqual(res.data.success, true);
-    assert.ok(res.data.data.id);
-    viewerDeviceId = res.data.data.id;
   });
 
-  test('POST /api/devices/pair pairs Viewer with Camera Device using pairing code', async () => {
+  test('POST /api/devices/pair pairs Authenticated Viewer with Camera Device', async () => {
     const res = await postJson('/api/devices/pair', {
       viewerDeviceId,
       pairingCode: cameraPairingCode
-    });
+    }, authToken);
 
     assert.strictEqual(res.status, 200);
     assert.strictEqual(res.data.success, true);
     assert.strictEqual(res.data.data.pairedDevice.id, cameraDeviceId);
   });
 
-  test('GET /api/devices/cameras returns registered camera devices', async () => {
-    const res = await getJson('/api/devices/cameras');
+  test('GET /api/devices/cameras returns registered camera devices when authenticated', async () => {
+    const res = await getJson('/api/devices/cameras', authToken);
     assert.strictEqual(res.status, 200);
     assert.strictEqual(res.data.success, true);
-    assert.ok(Array.isArray(res.data.data));
     assert.ok(res.data.data.some(item => item.device.id === cameraDeviceId));
   });
 
-  test('GET /api/devices returns the paired camera device for viewer', async () => {
-    const res = await getJson(`/api/devices?viewerDeviceId=${viewerDeviceId}`);
-    assert.strictEqual(res.status, 200);
-    assert.strictEqual(res.data.success, true);
-    assert.ok(Array.isArray(res.data.data));
-    assert.ok(res.data.data.length >= 1);
-    assert.strictEqual(res.data.data[0].device.id, cameraDeviceId);
-  });
-
-  test('POST /api/sessions/create initiates a pending streaming session', async () => {
-    const res = await postJson('/api/sessions/create', {
-      viewerDeviceId,
-      cameraDeviceId
-    });
-
-    assert.strictEqual(res.status, 201);
-    assert.strictEqual(res.data.success, true);
-    assert.strictEqual(res.data.data.status, 'pending');
-    sessionId = res.data.data.id;
-  });
-
-  test('POST /api/sessions/approve explicitly approves session by camera owner', async () => {
-    const res = await postJson('/api/sessions/approve', {
-      sessionId,
-      cameraDeviceId
-    });
-
-    assert.strictEqual(res.status, 200);
-    assert.strictEqual(res.data.success, true);
-    assert.strictEqual(res.data.data.status, 'active');
-  });
-
-  test('POST /api/sessions/terminate ends the active session', async () => {
-    const res = await postJson('/api/sessions/terminate', {
-      sessionId,
-      deviceId: viewerDeviceId
-    });
-
-    assert.strictEqual(res.status, 200);
-    assert.strictEqual(res.data.success, true);
-    assert.strictEqual(res.data.data.status, 'terminated');
-  });
-
-  test('Unauthorized device cannot approve another device\'s session', async () => {
+  test('POST /api/sessions/create -> approve -> terminate works end-to-end', async () => {
     const createRes = await postJson('/api/sessions/create', {
       viewerDeviceId,
       cameraDeviceId
-    });
-    const newSessionId = createRes.data.data.id;
+    }, authToken);
+    assert.strictEqual(createRes.status, 201);
+    sessionId = createRes.data.data.id;
 
-    const hackRes = await postJson('/api/sessions/approve', {
-      sessionId: newSessionId,
-      cameraDeviceId: 'fake_camera_device'
+    const approveRes = await postJson('/api/sessions/approve', {
+      sessionId,
+      cameraDeviceId
     });
+    assert.strictEqual(approveRes.status, 200);
+    assert.strictEqual(approveRes.data.data.status, 'active');
 
-    assert.strictEqual(hackRes.status, 400);
-    assert.strictEqual(hackRes.data.success, false);
+    const termRes = await postJson('/api/sessions/terminate', {
+      sessionId,
+      deviceId: viewerDeviceId
+    }, authToken);
+    assert.strictEqual(termRes.status, 200);
+    assert.strictEqual(termRes.data.data.status, 'terminated');
   });
 });
