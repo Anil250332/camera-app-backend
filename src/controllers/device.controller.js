@@ -1,4 +1,5 @@
 const deviceService = require('../services/device.service');
+const { isDeviceOnline } = require('../sockets/signaling.socket');
 
 class DeviceController {
   async register(req, res) {
@@ -78,13 +79,17 @@ class DeviceController {
 
   async getCameraDevices(req, res) {
     try {
-      // Returns all camera-type devices — used by web dashboard to list streamers
+      // Returns all camera-type devices with live socket online status
       const cameras = await deviceService.getAllCameraDevices();
       return res.status(200).json({
         success: true,
-        data: cameras.map(d => ({
-          device: { id: d.id, name: d.name, type: d.type, status: d.status, lastSeen: d.lastSeen }
-        }))
+        data: cameras.map(d => {
+          const liveOnline = isDeviceOnline(d.id);
+          const liveStatus = liveOnline ? (d.status === 'streaming' ? 'streaming' : 'online') : 'offline';
+          return {
+            device: { id: d.id, name: d.name, type: d.type, status: liveStatus, lastSeen: d.lastSeen }
+          };
+        })
       });
     } catch (err) {
       return res.status(500).json({ success: false, message: err.message });

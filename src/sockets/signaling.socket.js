@@ -253,4 +253,8 @@ function initSignalingSocket(io) {
   });
 }
 
-module.exports = { initSignalingSocket };
+function isDeviceOnline(deviceId) {
+  return deviceSocketMap.has(deviceId);
+}
+
+module.exports = { initSignalingSocket, isDeviceOnline };
