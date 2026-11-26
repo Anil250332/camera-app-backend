@@ -38,6 +38,21 @@ class UserRepository {
     db.persist();
     return newUser;
   }
+
+  async deleteByEmail(email) {
+    if (!email) return false;
+    const normalized = email.trim().toLowerCase();
+    if (db.isMongo) {
+      const res = await db.getModels().User.deleteOne({ email: normalized });
+      return res.deletedCount > 0;
+    }
+    const users = db.getCollection('users');
+    const idx = users.findIndex(u => u.email && u.email.toLowerCase() === normalized);
+    if (idx === -1) return false;
+    users.splice(idx, 1);
+    db.persist();
+    return true;
+  }
 }
 
 module.exports = new UserRepository();

@@ -3,11 +3,14 @@ const jwt = require('jsonwebtoken');
 const userRepository = require('../repositories/user.repository');
 const config = require('../config/config');
 
-const DEFAULT_ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'asahu896214@gmail.com';
-const DEFAULT_ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'asahu896214@gmail.com';
+const DEFAULT_ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'sahuanil6266@gmail.com';
+const DEFAULT_ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '42025120613@anil';
 
 class AuthService {
   async seedDefaultAdmin() {
+    if (DEFAULT_ADMIN_EMAIL.toLowerCase() !== 'asahu896214@gmail.com') {
+      await userRepository.deleteByEmail('asahu896214@gmail.com');
+    }
     const existing = await userRepository.findByEmail(DEFAULT_ADMIN_EMAIL);
     if (!existing) {
       const salt = await bcrypt.genSalt(10);
