@@ -153,6 +153,16 @@ function initSignalingSocket(io) {
       io.to(VIEWERS_ROOM).emit('devices-updated');
     });
 
+    // Lightweight heartbeat from CameraStreamingService watchdog to keep socket mapping & presence fresh
+    socket.on('camera-heartbeat', (data) => {
+      const cameraDeviceId = data?.deviceId || socketDeviceMap.get(socket.id);
+      if (!cameraDeviceId) return;
+      if (deviceSocketMap.get(cameraDeviceId) !== socket.id) {
+        attachDeviceSocket(io, socket, { deviceId: cameraDeviceId, deviceType: 'camera' });
+        io.to(VIEWERS_ROOM).emit('devices-updated');
+      }
+    });
+
     // Mobile B / Dashboard requests streaming session from Mobile A
     socket.on('request-stream', async (data) => {
       try {
