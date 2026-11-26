@@ -22,6 +22,6 @@ module.exports = {
   corsOrigin: process.env.CORS_ORIGIN || '*',
   mongoUri: process.env.MONGO_URI || process.env.MONGODB_URI || process.env.DATABASE_URL || '',
   jwtSecret: process.env.JWT_SECRET || 'remote_streaming_super_secret_jwt_key_2026',
-  jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
+  jwtExpiresIn: process.env.JWT_EXPIRES_IN || '3650d',
   iceServers
 };

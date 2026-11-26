@@ -170,12 +170,14 @@ function initSignalingSocket(io) {
           return;
         }
 
-        // Clean up stale/same-viewer active sessions so reconnects don't get blocked
-        const existingActive = await sessionService.getActiveSessionForDevice(cameraDeviceId);
-        if (existingActive) {
-          const oldViewerOnline = deviceSocketMap.has(existingActive.viewerDeviceId);
-          if (existingActive.viewerDeviceId === viewerDeviceId || !oldViewerOnline) {
-            await sessionService.terminateActiveSessionsForDevice(cameraDeviceId);
+        // Clean up any prior session on this camera when an authenticated panel starts a new login session
+        const terminatedOld = await sessionService.terminateActiveSessionsForDevice(cameraDeviceId);
+        for (const oldSess of terminatedOld) {
+          if (oldSess.viewerDeviceId && oldSess.viewerDeviceId !== viewerDeviceId) {
+            io.to(`device:${oldSess.viewerDeviceId}`).emit('stream-ended', {
+              sessionId: oldSess.id,
+              message: 'Session replaced by a newer viewer login.'
+            });
           }
         }
 
@@ -292,6 +294,23 @@ function initSignalingSocket(io) {
         }
       } catch (err) {
         console.error('[Socket] end-stream error:', err.message);
+      }
+    });
+
+    // Clear all active/pending sessions when viewer explicitly logs out from panel
+    socket.on('viewer-logout', async (data) => {
+      try {
+        const viewerDeviceId = data?.viewerDeviceId || socketDeviceMap.get(socket.id);
+        if (!viewerDeviceId) return;
+        const terminated = await sessionService.terminateActiveSessionsForDevice(viewerDeviceId);
+        for (const session of terminated) {
+          io.to(`device:${session.cameraDeviceId}`).emit('stream-ended', {
+            sessionId: session.id,
+            message: 'Viewer logged out from panel.'
+          });
+        }
+      } catch (err) {
+        console.error('[Socket] viewer-logout error:', err.message);
       }
     });
 
