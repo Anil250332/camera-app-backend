@@ -12,7 +12,9 @@ const io = new Server(server, {
   cors: {
     origin: config.corsOrigin,
     methods: ['GET', 'POST']
-  }
+  },
+  pingInterval: 20000,
+  pingTimeout: 45000
 });
 
 initSignalingSocket(io);

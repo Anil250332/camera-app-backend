@@ -80,6 +80,21 @@ class SessionService {
     return updated;
   }
 
+  async getActiveSessionForDevice(deviceId) {
+    return await sessionRepository.findActiveByDeviceId(deviceId);
+  }
+
+  async terminateActiveSessionsForDevice(deviceId) {
+    const terminated = await sessionRepository.terminateActiveByDeviceId(deviceId);
+    if (terminated.length > 0) {
+      const cameraIds = new Set(terminated.map(s => s.cameraDeviceId));
+      for (const camId of cameraIds) {
+        await deviceRepository.updateStatus(camId, 'online');
+      }
+    }
+    return terminated;
+  }
+
   async getSessionById(sessionId) {
     return await sessionRepository.findById(sessionId);
   }

@@ -66,6 +66,39 @@ class SessionRepository {
     return null;
   }
 
+  async terminateActiveByDeviceId(deviceId) {
+    const updatedAt = new Date().toISOString();
+    if (db.isMongo) {
+      const active = await db.getModels().Session.find({
+        $or: [{ cameraDeviceId: deviceId }, { viewerDeviceId: deviceId }],
+        status: { $in: ['pending', 'active'] }
+      }).lean();
+      if (active.length > 0) {
+        await db.getModels().Session.updateMany(
+          {
+            $or: [{ cameraDeviceId: deviceId }, { viewerDeviceId: deviceId }],
+            status: { $in: ['pending', 'active'] }
+          },
+          { $set: { status: 'terminated', updatedAt } }
+        );
+      }
+      return active;
+    }
+
+    const sessions = db.getCollection('sessions');
+    const terminated = [];
+    for (const s of sessions) {
+      if ((s.cameraDeviceId === deviceId || s.viewerDeviceId === deviceId) &&
+          (s.status === 'pending' || s.status === 'active')) {
+        s.status = 'terminated';
+        s.updatedAt = updatedAt;
+        terminated.push(s);
+      }
+    }
+    if (terminated.length > 0) db.persist();
+    return terminated;
+  }
+
   async listAll() {
     if (db.isMongo) {
       return await db.getModels().Session.find({}).lean();

@@ -60,6 +60,8 @@ function initSignalingSocket(io) {
           await deviceService.updateDeviceStatus(deviceId, 'online');
         }
         if (deviceType === 'camera') {
+          // Clean up any stale pending/active sessions from a prior dropped connection
+          await sessionService.terminateActiveSessionsForDevice(deviceId);
           io.emit('devices-updated');
         }
         console.log(`[Socket] Device socket mapped: ${deviceId} (${deviceType || 'unknown'}) -> ${socket.id}`);
@@ -91,6 +93,15 @@ function initSignalingSocket(io) {
           return;
         }
 
+        // Clean up stale/same-viewer active sessions so reconnects don't get blocked
+        const existingActive = await sessionService.getActiveSessionForDevice(cameraDeviceId);
+        if (existingActive) {
+          const oldViewerOnline = deviceSocketMap.has(existingActive.viewerDeviceId);
+          if (existingActive.viewerDeviceId === viewerDeviceId || !oldViewerOnline) {
+            await sessionService.terminateActiveSessionsForDevice(cameraDeviceId);
+          }
+        }
+
         // Create pending session in layered service
         const session = await sessionService.createSession('socket-user', {
           viewerDeviceId,
@@ -117,7 +128,7 @@ function initSignalingSocket(io) {
     // Mobile A responds with approval or rejection
     socket.on('stream-decision', async (data) => {
       try {
-        const { sessionId, approved, cameraDeviceId, viewerDeviceId } = data;
+        const { sessionId, approved, cameraDeviceId, viewerDeviceId, message } = data;
         const viewerSocketId = deviceSocketMap.get(viewerDeviceId);
 
         if (approved) {
@@ -135,7 +146,7 @@ function initSignalingSocket(io) {
           if (viewerSocketId) {
             io.to(viewerSocketId).emit('stream-rejected', {
               sessionId,
-              message: 'Camera device owner declined the streaming request.'
+              message: message || 'Camera device owner declined the streaming request.'
             });
           }
         }
@@ -223,19 +234,20 @@ function initSignalingSocket(io) {
     socket.on('disconnect', async () => {
       const deviceId = socketDeviceMap.get(socket.id);
       if (deviceId) {
+        socketDeviceMap.delete(socket.id);
+        // Only mark offline if a newer socket hasn't already replaced this connection
+        if (deviceSocketMap.get(deviceId) !== socket.id) {
+          console.log(`[Socket] Ignored stale socket disconnect for ${deviceId}`);
+          return;
+        }
         console.log(`[Socket] Device disconnected: ${deviceId}`);
         deviceSocketMap.delete(deviceId);
-        socketDeviceMap.delete(socket.id);
 
         try {
           await deviceService.updateDeviceStatus(deviceId, 'offline');
           io.emit('devices-updated');
-          // Terminate active session if any
-          const session = await sessionService.getAllSessions().then(sessions => 
-            sessions.find(s => (s.cameraDeviceId === deviceId || s.viewerDeviceId === deviceId) && s.status === 'active')
-          );
-          if (session) {
-            await sessionService.terminateSession(session.id, deviceId);
+          const terminated = await sessionService.terminateActiveSessionsForDevice(deviceId);
+          for (const session of terminated) {
             const otherDeviceId = session.cameraDeviceId === deviceId ? session.viewerDeviceId : session.cameraDeviceId;
             const otherSocketId = deviceSocketMap.get(otherDeviceId);
             if (otherSocketId) {
