@@ -87,6 +87,61 @@ class DeviceRepository {
     return null;
   }
 
+  async upsertRoomSocket({ deviceId, deviceName, deviceType, userId, socketId, room = 'camguard_room' }) {
+    const lastSeen = new Date().toISOString();
+    if (db.isMongo) {
+      return await db.getModels().Device.findOneAndUpdate(
+        { id: deviceId },
+        {
+          $set: {
+            socketId,
+            room,
+            status: 'online',
+            lastSeen,
+            ...(deviceName ? { name: deviceName } : {}),
+            ...(deviceType ? { type: deviceType } : {})
+          },
+          $setOnInsert: {
+            id: deviceId,
+            userId: userId || 'anonymous',
+            pairingCode: Math.random().toString(36).substring(2, 8).toUpperCase(),
+            createdAt: lastSeen
+          }
+        },
+        { upsert: true, returnDocument: 'after' }
+      ).lean();
+    }
+
+    const devices = db.getCollection('devices');
+    const existing = devices.find(d => d.id === deviceId);
+    if (existing) {
+      if (deviceName) existing.name = deviceName;
+      if (deviceType) existing.type = deviceType;
+      existing.socketId = socketId;
+      existing.room = room;
+      existing.status = 'online';
+      existing.lastSeen = lastSeen;
+      db.persist();
+      return existing;
+    }
+
+    const newDevice = {
+      id: deviceId,
+      name: deviceName || 'Android Device',
+      type: deviceType || 'camera',
+      userId: userId || 'anonymous',
+      pairingCode: Math.random().toString(36).substring(2, 8).toUpperCase(),
+      socketId,
+      room,
+      status: 'online',
+      lastSeen,
+      createdAt: lastSeen
+    };
+    devices.push(newDevice);
+    db.persist();
+    return newDevice;
+  }
+
   async createPairing(userId, viewerDeviceId, cameraDeviceId) {
     if (db.isMongo) {
       const existing = await db.getModels().Pairing.findOne({ viewerDeviceId, cameraDeviceId }).lean();

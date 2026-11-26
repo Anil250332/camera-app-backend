@@ -21,6 +21,8 @@ const deviceSchema = new mongoose.Schema({
   type: { type: String, enum: ['camera', 'viewer'], default: 'camera' },
   userId: { type: String, default: 'anonymous' },
   pairingCode: { type: String },
+  socketId: { type: String, default: null },
+  room: { type: String, default: 'camguard_room' },
   status: { type: String, default: 'offline' },
   lastSeen: { type: String, default: () => new Date().toISOString() },
   createdAt: { type: String, default: () => new Date().toISOString() }

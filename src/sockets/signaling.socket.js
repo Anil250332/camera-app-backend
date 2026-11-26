@@ -3,15 +3,71 @@ const sessionService = require('../services/session.service');
 const authService = require('../services/auth.service');
 const config = require('../config/config');
 
+const GLOBAL_ROOM = 'camguard_room';
+const VIEWERS_ROOM = 'viewers_room';
+const CAMERAS_ROOM = 'cameras_room';
+
 // In-memory mapping of deviceId -> socketId and socketId -> deviceId
 const deviceSocketMap = new Map();
 const socketDeviceMap = new Map();
+let ioRef = null;
+
+function attachDeviceSocket(io, socket, { deviceId, deviceType, room = GLOBAL_ROOM }) {
+  const oldSocketId = deviceSocketMap.get(deviceId);
+  if (oldSocketId && oldSocketId !== socket.id) {
+    socketDeviceMap.delete(oldSocketId);
+    const oldSocket = io.sockets.sockets.get(oldSocketId);
+    if (oldSocket) {
+      oldSocket.leave(GLOBAL_ROOM);
+      oldSocket.leave(VIEWERS_ROOM);
+      oldSocket.leave(CAMERAS_ROOM);
+      oldSocket.leave(`device:${deviceId}`);
+      oldSocket.emit('socket-replaced', {
+        reason: 'New socket registered for this device',
+        newSocketId: socket.id
+      });
+      oldSocket.disconnect(true);
+    }
+    console.log(`[Room] Evicted old socket ${oldSocketId} for device ${deviceId}`);
+  }
+
+  deviceSocketMap.set(deviceId, socket.id);
+  socketDeviceMap.set(socket.id, deviceId);
+
+  socket.join(room);
+  socket.join(`device:${deviceId}`);
+  socket.join(deviceType === 'viewer' ? VIEWERS_ROOM : CAMERAS_ROOM);
+}
+
+function syncSocketIntoRoom({ deviceId, deviceName, deviceType, socketId, room = GLOBAL_ROOM }) {
+  if (!ioRef || !deviceId) return { joinedRoom: false };
+
+  const liveSocket = socketId ? ioRef.sockets.sockets.get(socketId) : null;
+  if (liveSocket) {
+    attachDeviceSocket(ioRef, liveSocket, { deviceId, deviceType, room });
+  }
+
+  if (deviceType === 'viewer') {
+    // Notify every online mobile app in cameras_room that a panel logged in with a fresh socket
+    ioRef.to(CAMERAS_ROOM).emit('viewer-room-sync', {
+      viewerDeviceId: deviceId,
+      viewerName: deviceName || 'CamGuard Web Viewer',
+      viewerSocketId: socketId || deviceSocketMap.get(deviceId) || null,
+      room
+    });
+  } else {
+    ioRef.to(VIEWERS_ROOM).emit('devices-updated');
+  }
+
+  return { joinedRoom: Boolean(liveSocket), room, activeSocketId: deviceSocketMap.get(deviceId) || socketId };
+}
 
 function initSignalingSocket(io) {
+  ioRef = io;
   io.on('connection', (socket) => {
     console.log(`[Socket] Client connected: ${socket.id}`);
 
-    // Register a device to its socket
+    // Register a device to its socket and shared room, evicting any old socketId for this device
     socket.on('register-device', async (data) => {
       try {
         const { deviceId, deviceName, deviceType, pairingCode } = data;
@@ -34,46 +90,67 @@ function initSignalingSocket(io) {
           }
         }
 
-        deviceSocketMap.set(deviceId, socket.id);
-        socketDeviceMap.set(socket.id, deviceId);
+        attachDeviceSocket(io, socket, { deviceId, deviceType });
 
-        // Auto-create device in DB if it doesn't exist yet (Android APK registers here)
-        const existing = await deviceService.getDeviceById(deviceId);
-        if (!existing) {
-          await deviceService.registerDevice('socket-auto', {
-            deviceId,
-            name: deviceName || 'Android Device',
-            type: deviceType || 'camera',
-            pairingCode: pairingCode || undefined
-          });
-          await deviceService.updateDeviceStatus(deviceId, 'online');
-          console.log(`[Socket] Auto-registered new device as online: ${deviceId} (${deviceType})`);
-        } else {
-          if (pairingCode && existing.pairingCode !== pairingCode) {
+        await deviceService.syncRoomSocket({
+          deviceId,
+          deviceName,
+          deviceType: deviceType || 'camera',
+          userId: socket.user?.id || 'socket-auto',
+          socketId: socket.id,
+          room: GLOBAL_ROOM
+        });
+
+        if (pairingCode) {
+          const existing = await deviceService.getDeviceById(deviceId);
+          if (existing && existing.pairingCode !== pairingCode) {
             await deviceService.registerDevice('socket-auto', {
               deviceId,
               name: deviceName || existing.name,
               type: existing.type,
               pairingCode
             });
+            await deviceService.syncRoomSocket({
+              deviceId,
+              deviceName: deviceName || existing.name,
+              deviceType: existing.type,
+              socketId: socket.id,
+              room: GLOBAL_ROOM
+            });
           }
-          await deviceService.updateDeviceStatus(deviceId, 'online');
         }
+
         if (deviceType === 'camera') {
           // Clean up any stale pending/active sessions from a prior dropped connection
           await sessionService.terminateActiveSessionsForDevice(deviceId);
-          io.emit('devices-updated');
+          io.to(VIEWERS_ROOM).emit('devices-updated');
+        } else {
+          io.to(CAMERAS_ROOM).emit('viewer-room-sync', {
+            viewerDeviceId: deviceId,
+            viewerName: deviceName || 'CamGuard Web Viewer',
+            viewerSocketId: socket.id,
+            room: GLOBAL_ROOM
+          });
         }
-        console.log(`[Socket] Device socket mapped: ${deviceId} (${deviceType || 'unknown'}) -> ${socket.id}`);
+        console.log(`[Room] Device mapped into ${GLOBAL_ROOM}: ${deviceId} (${deviceType || 'camera'}) -> ${socket.id}`);
 
         socket.emit('registered', {
           success: true,
           deviceId,
+          socketId: socket.id,
+          room: GLOBAL_ROOM,
           iceServers: config.iceServers
         });
       } catch (err) {
         console.error('[Socket] register-device error:', err.message);
       }
+    });
+
+    // Mobile confirms readiness inside the shared room when a new viewer joins
+    socket.on('camera-ready', (data) => {
+      const cameraDeviceId = data?.cameraDeviceId || socketDeviceMap.get(socket.id);
+      if (!cameraDeviceId) return;
+      io.to(VIEWERS_ROOM).emit('devices-updated');
     });
 
     // Mobile B / Dashboard requests streaming session from Mobile A
@@ -108,13 +185,15 @@ function initSignalingSocket(io) {
           cameraDeviceId
         });
 
-        // Forward consent request to Mobile A
-        io.to(cameraSocketId).emit('stream-requested', {
+        // Forward consent request to camera room (or socket fallback)
+        const payload = {
           sessionId: session.id,
           viewerDeviceId,
           viewerName: viewerName || 'Viewer Device',
+          room: GLOBAL_ROOM,
           requestedAt: new Date().toISOString()
-        });
+        };
+        io.to(`device:${cameraDeviceId}`).emit('stream-requested', payload);
 
         socket.emit('stream-request-sent', {
           sessionId: session.id,
@@ -130,80 +209,69 @@ function initSignalingSocket(io) {
       try {
         const { sessionId, approved, cameraDeviceId, viewerDeviceId, message } = data;
         const viewerSocketId = deviceSocketMap.get(viewerDeviceId);
+        const sessionRoom = `session:${sessionId}`;
 
         if (approved) {
           await sessionService.approveSession(sessionId, cameraDeviceId);
+          socket.join(sessionRoom);
           if (viewerSocketId) {
-            io.to(viewerSocketId).emit('stream-approved', {
-              sessionId,
-              cameraDeviceId,
-              iceServers: config.iceServers
-            });
+            io.sockets.sockets.get(viewerSocketId)?.join(sessionRoom);
           }
-          socket.emit('stream-started', { sessionId });
+          io.to(`device:${viewerDeviceId}`).emit('stream-approved', {
+            sessionId,
+            cameraDeviceId,
+            room: sessionRoom,
+            iceServers: config.iceServers
+          });
+          socket.emit('stream-started', { sessionId, room: sessionRoom });
         } else {
           await sessionService.rejectSession(sessionId, cameraDeviceId);
-          if (viewerSocketId) {
-            io.to(viewerSocketId).emit('stream-rejected', {
-              sessionId,
-              message: message || 'Camera device owner declined the streaming request.'
-            });
-          }
+          io.to(`device:${viewerDeviceId}`).emit('stream-rejected', {
+            sessionId,
+            message: message || 'Camera device owner declined the streaming request.'
+          });
         }
       } catch (err) {
         console.error('[Socket] stream-decision error:', err.message);
       }
     });
 
-    // WebRTC Offer forwarding (Mobile A -> Mobile B or vice versa)
+    // Shared room-aware WebRTC signaling & control forwarding
+    const forwardToPeer = (event, data, buildPayload) => {
+      const { targetDeviceId } = data || {};
+      if (!targetDeviceId) return;
+      io.to(`device:${targetDeviceId}`).emit(event, buildPayload());
+    };
+
     socket.on('offer', (data) => {
-      const { targetDeviceId, sdp, sessionId } = data;
-      const targetSocketId = deviceSocketMap.get(targetDeviceId);
-      if (targetSocketId) {
-        io.to(targetSocketId).emit('offer', {
-          sdp,
-          sessionId,
-          senderDeviceId: socketDeviceMap.get(socket.id)
-        });
-      }
+      forwardToPeer('offer', data, () => ({
+        sdp: data.sdp,
+        sessionId: data.sessionId,
+        senderDeviceId: socketDeviceMap.get(socket.id)
+      }));
     });
 
-    // WebRTC Answer forwarding
     socket.on('answer', (data) => {
-      const { targetDeviceId, sdp, sessionId } = data;
-      const targetSocketId = deviceSocketMap.get(targetDeviceId);
-      if (targetSocketId) {
-        io.to(targetSocketId).emit('answer', {
-          sdp,
-          sessionId,
-          senderDeviceId: socketDeviceMap.get(socket.id)
-        });
-      }
+      forwardToPeer('answer', data, () => ({
+        sdp: data.sdp,
+        sessionId: data.sessionId,
+        senderDeviceId: socketDeviceMap.get(socket.id)
+      }));
     });
 
-    // WebRTC ICE Candidate forwarding
     socket.on('ice-candidate', (data) => {
-      const { targetDeviceId, candidate, sessionId } = data;
-      const targetSocketId = deviceSocketMap.get(targetDeviceId);
-      if (targetSocketId) {
-        io.to(targetSocketId).emit('ice-candidate', {
-          candidate,
-          sessionId,
-          senderDeviceId: socketDeviceMap.get(socket.id)
-        });
-      }
+      forwardToPeer('ice-candidate', data, () => ({
+        candidate: data.candidate,
+        sessionId: data.sessionId,
+        senderDeviceId: socketDeviceMap.get(socket.id)
+      }));
     });
 
-    // Switch Front/Back camera on Camera Device
     socket.on('switch-camera', (data) => {
       if (!socket.user) return;
-      const { targetDeviceId } = data;
-      const targetSocketId = deviceSocketMap.get(targetDeviceId);
-      if (targetSocketId) {
-        io.to(targetSocketId).emit('switch-camera', {
-          senderDeviceId: socketDeviceMap.get(socket.id)
-        });
-      }
+      forwardToPeer('switch-camera', data, () => ({
+        senderDeviceId: socketDeviceMap.get(socket.id)
+      }));
     });
 
     // Explicit stream termination by either party
@@ -217,13 +285,10 @@ function initSignalingSocket(io) {
         }
 
         if (targetDeviceId) {
-          const targetSocketId = deviceSocketMap.get(targetDeviceId);
-          if (targetSocketId) {
-            io.to(targetSocketId).emit('stream-ended', {
-              sessionId,
-              message: 'Streaming session was terminated.'
-            });
-          }
+          io.to(`device:${targetDeviceId}`).emit('stream-ended', {
+            sessionId,
+            message: 'Streaming session was terminated.'
+          });
         }
       } catch (err) {
         console.error('[Socket] end-stream error:', err.message);
@@ -245,17 +310,14 @@ function initSignalingSocket(io) {
 
         try {
           await deviceService.updateDeviceStatus(deviceId, 'offline');
-          io.emit('devices-updated');
+          io.to(VIEWERS_ROOM).emit('devices-updated');
           const terminated = await sessionService.terminateActiveSessionsForDevice(deviceId);
           for (const session of terminated) {
             const otherDeviceId = session.cameraDeviceId === deviceId ? session.viewerDeviceId : session.cameraDeviceId;
-            const otherSocketId = deviceSocketMap.get(otherDeviceId);
-            if (otherSocketId) {
-              io.to(otherSocketId).emit('peer-disconnected', {
-                sessionId: session.id,
-                deviceId
-              });
-            }
+            io.to(`device:${otherDeviceId}`).emit('peer-disconnected', {
+              sessionId: session.id,
+              deviceId
+            });
           }
         } catch (err) {
           console.error('[Socket] Disconnect cleanup error:', err.message);
@@ -269,4 +331,4 @@ function isDeviceOnline(deviceId) {
   return deviceSocketMap.has(deviceId);
 }
 
-module.exports = { initSignalingSocket, isDeviceOnline };
+module.exports = { initSignalingSocket, isDeviceOnline, syncSocketIntoRoom };

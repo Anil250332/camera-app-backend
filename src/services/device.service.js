@@ -80,6 +80,21 @@ class DeviceService {
     return devices;
   }
 
+  async syncRoomSocket({ deviceId, deviceName, deviceType, userId, socketId, room = 'camguard_room' }) {
+    if (!deviceId) {
+      throw new Error('deviceId is required');
+    }
+    const type = deviceType === 'viewer' ? 'viewer' : 'camera';
+    return await deviceRepository.upsertRoomSocket({
+      deviceId,
+      deviceName: deviceName || (type === 'viewer' ? 'CamGuard Web Viewer' : 'Android Device'),
+      deviceType: type,
+      userId: userId || 'anonymous',
+      socketId: socketId || null,
+      room
+    });
+  }
+
   async updateDeviceStatus(deviceId, status) {
     return await deviceRepository.updateStatus(deviceId, status);
   }

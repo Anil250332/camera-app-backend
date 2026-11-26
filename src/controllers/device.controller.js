@@ -1,5 +1,6 @@
 const deviceService = require('../services/device.service');
-const { isDeviceOnline } = require('../sockets/signaling.socket');
+const authService = require('../services/auth.service');
+const { isDeviceOnline, syncSocketIntoRoom } = require('../sockets/signaling.socket');
 
 class DeviceController {
   async register(req, res) {
@@ -74,6 +75,52 @@ class DeviceController {
         success: false,
         message: err.message
       });
+    }
+  }
+
+  async joinRoom(req, res) {
+    try {
+      const { deviceId, deviceName, deviceType, socketId, room } = req.body;
+      if (!deviceId) {
+        return res.status(400).json({ success: false, message: 'deviceId is required' });
+      }
+
+      let userId = 'anonymous';
+      if (deviceType === 'viewer') {
+        const authHeader = req.headers.authorization || '';
+        const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+        if (!token) {
+          return res.status(401).json({ success: false, message: 'Unauthorized: Bearer token required for viewer room join' });
+        }
+        const decoded = authService.verifyToken(token);
+        userId = decoded.id || 'viewer';
+      }
+
+      const targetRoom = room || 'camguard_room';
+      const device = await deviceService.syncRoomSocket({
+        deviceId,
+        deviceName,
+        deviceType: deviceType || 'camera',
+        userId,
+        socketId,
+        room: targetRoom
+      });
+
+      const roomState = syncSocketIntoRoom({
+        deviceId,
+        deviceName: device.name,
+        deviceType: device.type,
+        socketId,
+        room: targetRoom
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: 'Joined socket room successfully',
+        data: { device, ...roomState }
+      });
+    } catch (err) {
+      return res.status(400).json({ success: false, message: err.message });
     }
   }
 

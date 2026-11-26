@@ -151,6 +151,36 @@ describe('Remote Camera & Audio Streaming Backend Integration Tests', () => {
     assert.strictEqual(termRes.data.data.status, 'terminated');
   });
 
+  test('POST /api/devices/room/join updates socketId and joins camguard_room', async () => {
+    const camRes = await postJson('/api/devices/room/join', {
+      deviceId: cameraDeviceId,
+      deviceName: 'Old Android Phone (Camera)',
+      deviceType: 'camera',
+      socketId: 'sock_cam_123'
+    });
+    assert.strictEqual(camRes.status, 200);
+    assert.strictEqual(camRes.data.success, true);
+    assert.strictEqual(camRes.data.data.device.socketId, 'sock_cam_123');
+    assert.strictEqual(camRes.data.data.room, 'camguard_room');
+
+    const unauthViewer = await postJson('/api/devices/room/join', {
+      deviceId: viewerDeviceId,
+      deviceType: 'viewer',
+      socketId: 'sock_view_unauth'
+    });
+    assert.strictEqual(unauthViewer.status, 401);
+
+    const viewRes = await postJson('/api/devices/room/join', {
+      deviceId: viewerDeviceId,
+      deviceName: 'CamGuard Web Viewer',
+      deviceType: 'viewer',
+      socketId: 'sock_view_456'
+    }, authToken);
+    assert.strictEqual(viewRes.status, 200);
+    assert.strictEqual(viewRes.data.success, true);
+    assert.strictEqual(viewRes.data.data.device.socketId, 'sock_view_456');
+  });
+
   test('DELETE /api/devices/:id deletes a registered device when authenticated', async () => {
     const res = await fetch(`${baseUrl}/api/devices/${cameraDeviceId}`, {
       method: 'DELETE',
