@@ -16,6 +16,6 @@ services:
       - key: JWT_EXPIRES_IN
         value: 7d
       - key: CORS_ORIGIN
-        value: '*'
+        value: https://myapp-wheat-six-49.vercel.app
       - key: MONGO_URI
         sync: false

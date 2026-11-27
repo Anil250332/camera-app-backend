@@ -9,7 +9,7 @@ const sessionRoutes = require('./routes/session.routes');
 
 const app = express();
 
-app.use(cors({ origin: config.corsOrigin, credentials: true }));
+app.use(cors({ origin: config.corsOriginValidator, credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

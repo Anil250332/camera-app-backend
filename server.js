@@ -10,8 +10,9 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: config.corsOrigin,
-    methods: ['GET', 'POST']
+    origin: config.corsOriginValidator,
+    methods: ['GET', 'POST'],
+    credentials: true
   },
   pingInterval: 20000,
   pingTimeout: 45000
