@@ -30,6 +30,22 @@ if (require.main === module) {
     server.listen(PORT, () => {
       console.log(`[Server] WebRTC Signaling & Backend API running on port ${PORT}`);
       console.log(`[Server] Environment: ${config.nodeEnv}`);
+
+      const keepAliveBase =
+        process.env.KEEP_ALIVE_URL ||
+        process.env.RENDER_EXTERNAL_URL ||
+        (config.nodeEnv === 'production' ? 'https://camera-app-backend-q7p5.onrender.com' : '');
+      if (keepAliveBase) {
+        const healthUrl = `${keepAliveBase.replace(/\/+$/, '')}/health`;
+        setInterval(async () => {
+          try {
+            const res = await fetch(healthUrl);
+            console.log(`[KeepAlive] Pinged ${healthUrl} -> ${res.status}`);
+          } catch (err) {
+            console.warn(`[KeepAlive] Ping failed: ${err.message}`);
+          }
+        }, 10 * 60 * 1000).unref();
+      }
     });
   });
 }
