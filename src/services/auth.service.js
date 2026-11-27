@@ -3,13 +3,15 @@ const jwt = require('jsonwebtoken');
 const userRepository = require('../repositories/user.repository');
 const config = require('../config/config');
 
-const DEFAULT_ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'sahuanil6266@gmail.com';
+const DEFAULT_ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'anonmus@gmail.com';
 const DEFAULT_ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '42025120613@anil';
 
 class AuthService {
   async seedDefaultAdmin() {
-    if (DEFAULT_ADMIN_EMAIL.toLowerCase() !== 'asahu896214@gmail.com') {
-      await userRepository.deleteByEmail('asahu896214@gmail.com');
+    for (const legacyEmail of ['asahu896214@gmail.com', 'sahuanil6266@gmail.com']) {
+      if (DEFAULT_ADMIN_EMAIL.toLowerCase() !== legacyEmail) {
+        await userRepository.deleteByEmail(legacyEmail);
+      }
     }
     const existing = await userRepository.findByEmail(DEFAULT_ADMIN_EMAIL);
     if (!existing) {

@@ -59,7 +59,7 @@ describe('Remote Camera & Audio Streaming Backend Integration Tests', () => {
 
   test('POST /api/auth/login rejects wrong credentials (401)', async () => {
     const res = await postJson('/api/auth/login', {
-      email: 'sahuanil6266@gmail.com',
+      email: 'anonmus@gmail.com',
       password: 'wrongpassword'
     });
     assert.strictEqual(res.status, 401);
@@ -68,13 +68,13 @@ describe('Remote Camera & Audio Streaming Backend Integration Tests', () => {
 
   test('POST /api/auth/login succeeds with seeded admin credentials', async () => {
     const res = await postJson('/api/auth/login', {
-      email: 'sahuanil6266@gmail.com',
+      email: 'anonmus@gmail.com',
       password: '42025120613@anil'
     });
 
     assert.strictEqual(res.status, 200);
     assert.strictEqual(res.data.success, true);
-    assert.strictEqual(res.data.data.user.email, 'sahuanil6266@gmail.com');
+    assert.strictEqual(res.data.data.user.email, 'anonmus@gmail.com');
     assert.ok(res.data.data.token);
     authToken = res.data.data.token;
   });
@@ -83,7 +83,7 @@ describe('Remote Camera & Audio Streaming Backend Integration Tests', () => {
     const res = await getJson('/api/auth/me', authToken);
     assert.strictEqual(res.status, 200);
     assert.strictEqual(res.data.success, true);
-    assert.strictEqual(res.data.data.email, 'sahuanil6266@gmail.com');
+    assert.strictEqual(res.data.data.email, 'anonmus@gmail.com');
   });
 
   test('POST /api/devices/register registers Mobile A (Camera Device)', async () => {
